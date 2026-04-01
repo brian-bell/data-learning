@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "data-learning"
+version = "0.1.0"
+description = "Minimal tracer-bullet data pipeline for learning data engineering concepts."
+requires-python = ">=3.9"
+dependencies = [
+  "pandas>=2.0",
+  "pyarrow>=14.0",
+  "duckdb>=0.10",
+  "fastavro>=1.9",
+  "streamlit>=1.30",
+  "plotly>=5.18",
+  "ijson>=3.2",
+  "pytest>=8.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
