@@ -65,6 +65,7 @@ def test_pipeline_runs_end_to_end_via_cli(tmp_path):
 
     validated_frame = pd.read_parquet(validated_path)
     assert len(validated_frame) == len(records)
+    assert (modeled_dir / "dim_papers.parquet").exists()
     assert (output_dir / "csv" / "fact_submissions.csv").exists()
     assert (output_dir / "parquet" / "fact_submissions.parquet").exists()
     assert "year\tsubmission_count" in completed[-1].stdout

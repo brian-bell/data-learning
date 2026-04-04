@@ -11,9 +11,9 @@ def test_yearly_submission_counts_queries_parquet_files(tmp_path):
 
     pd.DataFrame(
         [
-            {"submission_key": 1, "paper_id": "a", "version_number": 1, "date_key": 20200101, "is_first_submission": True, "is_latest_version": True},
-            {"submission_key": 2, "paper_id": "b", "version_number": 1, "date_key": 20200101, "is_first_submission": True, "is_latest_version": True},
-            {"submission_key": 3, "paper_id": "c", "version_number": 1, "date_key": 20210101, "is_first_submission": True, "is_latest_version": True},
+            {"submission_key": 1, "paper_id": "a", "version_number": 1, "paper_key": 1, "date_key": 20200101, "is_first_submission": True, "is_latest_version": True},
+            {"submission_key": 2, "paper_id": "b", "version_number": 1, "paper_key": 2, "date_key": 20200101, "is_first_submission": True, "is_latest_version": True},
+            {"submission_key": 3, "paper_id": "c", "version_number": 1, "paper_key": 3, "date_key": 20210101, "is_first_submission": True, "is_latest_version": True},
         ]
     ).to_parquet(fact_path, index=False)
 

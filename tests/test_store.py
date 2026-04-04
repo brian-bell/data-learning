@@ -15,6 +15,7 @@ def test_run_store_writes_csv_and_parquet_outputs(tmp_path):
                 "submission_key": 1,
                 "paper_id": "0000001",
                 "version_number": 1,
+                "paper_key": 1,
                 "date_key": 20200101,
                 "is_first_submission": True,
                 "is_latest_version": True,
