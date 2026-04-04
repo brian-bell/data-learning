@@ -1,0 +1,17 @@
+.claude/settings.local.json
+.DS_Store
+__pycache__/
+.pytest_cache/
+.venv/
+*.egg-info/
+.coverage
+
+data/**
+!data/
+!data/.gitkeep
+!data/raw/
+!data/raw/.gitkeep
+!data/modeled/
+!data/modeled/.gitkeep
+!data/output/
+!data/output/.gitkeep
