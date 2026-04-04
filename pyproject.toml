@@ -11,8 +11,6 @@ dependencies = [
   "pandas>=2.0",
   "pyarrow>=14.0",
   "duckdb>=0.10",
-  "fastavro>=1.9",
-  "streamlit>=1.30",
   "plotly>=5.18",
   "ijson>=3.2",
 ]
