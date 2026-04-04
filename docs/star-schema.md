@@ -1,6 +1,6 @@
 # Stage 2 Star Schema
 
-This note describes the Stage 2 dimensional model implemented in [`src/data_learning/model_stage.py`](/Users/brian/dev/data-learning/src/data_learning/model_stage.py).
+This note describes the Stage 2 dimensional model implemented in [`src/data_learning/model_stage.py`](../src/data_learning/model_stage.py).
 
 The current modeled schema centers on three tables:
 

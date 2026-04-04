@@ -2,7 +2,7 @@
 
 This note compares the two common dimensional-modeling shapes and explains why the current Stage 2 implementation uses a star schema.
 
-It is a companion to [`docs/star-schema.md`](/Users/brian/dev/data-learning/docs/star-schema.md), which describes the concrete tables implemented in this repository.
+It is a companion to [`docs/star-schema.md`](./star-schema.md), which describes the concrete tables implemented in this repository.
 
 ## Short version
 
