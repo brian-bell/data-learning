@@ -54,6 +54,9 @@ DATE_COLUMNS = [
     "is_weekend",
 ]
 
+MAX_DATE_DIMENSION_SPAN_DAYS = 366 * 200
+
+
 def normalize_versions(value: Any) -> list[dict[str, Any]]:
     raw_versions = json_loads_if_needed(value)
     if raw_versions is None:
@@ -86,9 +89,27 @@ def normalize_versions(value: Any) -> list[dict[str, Any]]:
     return normalized_versions
 
 
+def validate_date_dimension_range(start_date: date | None, end_date: date | None) -> None:
+    if start_date is None or end_date is None:
+        return
+
+    if end_date < start_date:
+        raise ValueError(f"invalid submission date range: {start_date.isoformat()} > {end_date.isoformat()}")
+
+    span_days = (end_date - start_date).days + 1
+    if span_days > MAX_DATE_DIMENSION_SPAN_DAYS:
+        raise ValueError(
+            "submission date range is too large to build a contiguous dim_dates table: "
+            f"{start_date.isoformat()} to {end_date.isoformat()} ({span_days} days, "
+            f"max {MAX_DATE_DIMENSION_SPAN_DAYS})"
+        )
+
+
 def build_date_dimension(start_date: date | None, end_date: date | None) -> pd.DataFrame:
     if start_date is None or end_date is None:
         return pd.DataFrame(columns=DATE_COLUMNS)
+
+    validate_date_dimension_range(start_date, end_date)
 
     date_rows = []
     current_date = start_date

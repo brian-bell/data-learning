@@ -103,6 +103,40 @@ def test_build_fact_and_dates_uses_valid_dimension_keys():
     assert fact_frame["is_latest_version"].tolist() == [False, False, True, True]
 
 
+def test_build_fact_and_dates_rejects_pathological_date_span():
+    frame = pd.DataFrame(
+        [
+            {
+                "id": "0000001",
+                "title": "Paper 1",
+                "abstract": "Abstract for paper 1",
+                "doi": None,
+                "journal_ref": None,
+                "comments": None,
+                "license": "CC0",
+                "versions": [
+                    {"version_number": 1, "created_date": "2020-01-01"},
+                ],
+            },
+            {
+                "id": "0000002",
+                "title": "Paper 2",
+                "abstract": "Abstract for paper 2",
+                "doi": None,
+                "journal_ref": None,
+                "comments": None,
+                "license": "CC0",
+                "versions": [
+                    {"version_number": 1, "created_date": "9999-12-31"},
+                ],
+            },
+        ]
+    )
+
+    with pytest.raises(ValueError, match="submission date range is too large"):
+        build_fact_and_dates(frame)
+
+
 def test_normalize_versions_accepts_raw_ingest_payload():
     raw_versions = [
         {"version": "v2", "created": "Tue, 02 Feb 2021 00:00:00 GMT"},
