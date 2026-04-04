@@ -15,8 +15,10 @@ dependencies = [
   "streamlit>=1.30",
   "plotly>=5.18",
   "ijson>=3.2",
-  "pytest>=8.0",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
