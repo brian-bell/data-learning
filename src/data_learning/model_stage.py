@@ -13,6 +13,8 @@ from data_learning.common import (
     date_to_key,
     ensure_directory,
     json_loads_if_needed,
+    parse_created_date,
+    parse_version_number,
     path_arg,
 )
 
@@ -38,13 +40,45 @@ DATE_COLUMNS = [
 ]
 
 
+def normalize_versions(value: Any) -> list[dict[str, Any]]:
+    raw_versions = json_loads_if_needed(value)
+    if raw_versions is None:
+        return []
+
+    versions = list(raw_versions)
+    normalized_versions: list[dict[str, Any]] = []
+    for version in versions:
+        if not isinstance(version, dict):
+            raise ValueError(f"invalid version payload: {version!r}")
+
+        if "version_number" in version and "created_date" in version:
+            version_number = version["version_number"]
+            created_date = version["created_date"]
+        else:
+            version_number = parse_version_number(version.get("version"))
+            created = parse_created_date(version.get("created"))
+            if version_number is None or created is None:
+                raise ValueError(f"invalid version payload: {version!r}")
+            created_date = created.isoformat()
+
+        normalized_versions.append(
+            {
+                "version_number": version_number,
+                "created_date": created_date,
+            }
+        )
+
+    normalized_versions.sort(key=lambda item: item["version_number"])
+    return normalized_versions
+
+
 def build_fact_and_dates(validated_frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     fact_rows: list[dict[str, Any]] = []
     unique_dates: dict[int, date] = {}
     submission_key = 1
 
     for row in validated_frame.to_dict(orient="records"):
-        versions = json_loads_if_needed(row["versions"])
+        versions = normalize_versions(row["versions"])
         if not versions:
             raise ValueError(f"paper {row['id']} has no versions")
         latest_version_number = max(version["version_number"] for version in versions)
