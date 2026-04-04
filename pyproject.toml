@@ -9,14 +9,18 @@ description = "Minimal tracer-bullet data pipeline for learning data engineering
 requires-python = ">=3.9"
 dependencies = [
   "pandas>=2.0",
-  "pyarrow>=14.0",
   "duckdb>=0.10",
-  "plotly>=5.18",
-  "ijson>=3.2",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = [
+  "pytest>=8.0",
+  "fastavro>=1.9",
+  "ijson>=3.2",
+  "pyarrow>=14.0",
+  "plotly>=5.18",
+  "streamlit>=1.30",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
