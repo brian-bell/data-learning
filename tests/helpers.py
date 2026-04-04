@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
+from email.utils import format_datetime
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +17,7 @@ def make_arxiv_record(identifier: int, *, version_count: int = 1, year: int = 20
         versions.append(
             {
                 "version": f"v{index + 1}",
-                "created": f"{year + index:04d}-{month:02d}-{day:02d}",
+                "created": format_datetime(datetime(year + index, month, day)),
             }
         )
 
