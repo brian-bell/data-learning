@@ -9,6 +9,7 @@ from data_learning.model_stage import (
     FACT_COLUMNS,
     PAPER_COLUMNS,
     build_fact_and_dates,
+    normalize_versions,
     run_model,
 )
 
@@ -20,8 +21,8 @@ def test_run_model_builds_core_star_schema_tables(tmp_path):
     output_dir = tmp_path / "modeled"
 
     records = [
-        normalize_record(make_arxiv_record(1, version_count=2, year=2020)),
-        normalize_record(make_arxiv_record(2, version_count=1, year=2021)),
+        normalize_record(make_arxiv_record(1, version_count=2, year=2020))[0],
+        normalize_record(make_arxiv_record(2, version_count=1, year=2021))[0],
     ]
 
     pd.DataFrame(records).to_parquet(input_path, index=False)
@@ -84,8 +85,8 @@ def test_build_fact_and_dates_raises_on_empty_versions():
 def test_build_fact_and_dates_uses_valid_dimension_keys():
     frame = pd.DataFrame(
         [
-            normalize_record(make_arxiv_record(2, version_count=3, year=2020)),
-            normalize_record(make_arxiv_record(1, version_count=1, year=2021)),
+            normalize_record(make_arxiv_record(2, version_count=3, year=2020))[0],
+            normalize_record(make_arxiv_record(1, version_count=1, year=2021))[0],
         ]
     )
 
@@ -100,3 +101,17 @@ def test_build_fact_and_dates_uses_valid_dimension_keys():
     assert fact_frame["paper_key"].tolist() == [2, 2, 2, 1]
     assert fact_frame["is_first_submission"].tolist() == [True, False, False, True]
     assert fact_frame["is_latest_version"].tolist() == [False, False, True, True]
+
+
+def test_normalize_versions_accepts_raw_ingest_payload():
+    raw_versions = [
+        {"version": "v2", "created": "Tue, 02 Feb 2021 00:00:00 GMT"},
+        {"version": "v1", "created": "Wed, 01 Jan 2020 00:00:00 GMT"},
+    ]
+
+    normalized = normalize_versions(raw_versions)
+
+    assert normalized == [
+        {"version_number": 1, "created_date": "2020-01-01"},
+        {"version_number": 2, "created_date": "2021-02-02"},
+    ]

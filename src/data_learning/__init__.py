@@ -1,4 +1,4 @@
-"""Shared pipeline modules for the arXiv tracer-bullet project."""
+"""Shared pipeline modules for the arXiv learning project."""
 
 __all__ = [
     "common",

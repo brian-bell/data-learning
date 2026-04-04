@@ -13,6 +13,8 @@ from data_learning.common import (
     date_to_key,
     ensure_directory,
     json_loads_if_needed,
+    parse_created_date,
+    parse_version_number,
     path_arg,
 )
 
@@ -52,6 +54,38 @@ DATE_COLUMNS = [
     "is_weekend",
 ]
 
+def normalize_versions(value: Any) -> list[dict[str, Any]]:
+    raw_versions = json_loads_if_needed(value)
+    if raw_versions is None:
+        return []
+
+    versions = list(raw_versions)
+    normalized_versions: list[dict[str, Any]] = []
+    for version in versions:
+        if not isinstance(version, dict):
+            raise ValueError(f"invalid version payload: {version!r}")
+
+        if "version_number" in version and "created_date" in version:
+            version_number = version["version_number"]
+            created_date = version["created_date"]
+        else:
+            version_number = parse_version_number(version.get("version"))
+            created = parse_created_date(version.get("created"))
+            if version_number is None or created is None:
+                raise ValueError(f"invalid version payload: {version!r}")
+            created_date = created.isoformat()
+
+        normalized_versions.append(
+            {
+                "version_number": version_number,
+                "created_date": created_date,
+            }
+        )
+
+    normalized_versions.sort(key=lambda item: item["version_number"])
+    return normalized_versions
+
+
 def build_date_dimension(start_date: date | None, end_date: date | None) -> pd.DataFrame:
     if start_date is None or end_date is None:
         return pd.DataFrame(columns=DATE_COLUMNS)
@@ -86,7 +120,7 @@ def build_paper_dimension(records: list[dict[str, Any]]) -> tuple[pd.DataFrame, 
         if paper_id in paper_keys:
             raise ValueError(f"duplicate paper id: {paper_id}")
 
-        versions = json_loads_if_needed(row["versions"])
+        versions = normalize_versions(row["versions"])
         if not versions:
             raise ValueError(f"paper {paper_id} has no versions")
 
@@ -122,7 +156,7 @@ def build_fact_and_dates(validated_frame: pd.DataFrame) -> tuple[pd.DataFrame, p
     # The fact table grain is one submission event per paper-version. Keeping the fact at that
     # event grain makes version history explicit without forcing query-time array parsing.
     for row in records:
-        versions = json_loads_if_needed(row["versions"])
+        versions = normalize_versions(row["versions"])
         if not versions:
             raise ValueError(f"paper {row['id']} has no versions")
         latest_version_number = max(version["version_number"] for version in versions)
