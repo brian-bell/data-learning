@@ -18,14 +18,24 @@ from data_learning.common import (
     path_arg,
 )
 
+# Star schema over snowflake: each dimension table denormalizes its attributes
+# so that fact queries need only a single JOIN per dimension rather than
+# navigating a chain of foreign keys.  Snowflake would split authors, licenses,
+# etc. into child tables, but the extra joins outweigh storage savings at this
+# dataset size and hurt BI-tool compatibility.
+
 FACT_COLUMNS = [
     "submission_key",
     "paper_id",
     "version_number",
-    "date_key",
+    "paper_key",  # FK to dim_papers (surrogate integer)
+    "date_key",   # FK to dim_dates (YYYYMMDD integer)
     "is_first_submission",
     "is_latest_version",
 ]
+# Grain: one row per (paper_id, version_number).  A paper with N versions
+# produces N fact rows, so consumers can count first submissions, track
+# version history, or filter to latest-only by setting is_latest_version=True.
 
 DATE_COLUMNS = [
     "date_key",
@@ -37,6 +47,25 @@ DATE_COLUMNS = [
     "day_of_week",
     "day_name",
     "is_weekend",
+]
+
+# Surrogate key (paper_key) decouples dim_papers from the natural key
+# (paper_id).  Joining on an integer FK is cheaper than joining on a string,
+# and surrogates are required for SCD Type 2 (issue #06) where a single
+# paper_id will have multiple rows with distinct paper_key values representing
+# different historical snapshots.
+DIM_PAPERS_COLUMNS = [
+    "paper_key",   # surrogate integer; stable FK target for fact table
+    "paper_id",    # arXiv natural key (e.g. "0704.0001")
+    "title",
+    "abstract",
+    "doi",
+    "journal_ref",
+    "comments",
+    "license",
+    "is_current",  # SCD placeholder: always True until issue #06 adds history
+    "valid_from",  # ISO date of the paper's first version submission
+    "valid_to",    # SCD placeholder: null until issue #06 introduces expiry
 ]
 
 
@@ -72,16 +101,44 @@ def normalize_versions(value: Any) -> list[dict[str, Any]]:
     return normalized_versions
 
 
-def build_fact_and_dates(validated_frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def build_fact_and_dates(
+    validated_frame: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Build the core star schema tables from a validated ingestion frame.
+
+    Returns:
+        (fact_frame, date_frame, papers_frame)
+    """
     fact_rows: list[dict[str, Any]] = []
     unique_dates: dict[int, date] = {}
+    paper_rows: list[dict[str, Any]] = []
     submission_key = 1
+    paper_key = 1
 
     for row in validated_frame.to_dict(orient="records"):
         versions = normalize_versions(row["versions"])
         if not versions:
             raise ValueError(f"paper {row['id']} has no versions")
         latest_version_number = max(version["version_number"] for version in versions)
+        # valid_from uses the earliest version date; versions are sorted ascending
+        valid_from = versions[0]["created_date"]
+
+        # One dim_papers row per unique paper (no SCD Type 2 yet — issue #06)
+        paper_rows.append(
+            {
+                "paper_key": paper_key,
+                "paper_id": row["id"],
+                "title": row.get("title"),
+                "abstract": row.get("abstract"),
+                "doi": row.get("doi"),
+                "journal_ref": row.get("journal_ref"),
+                "comments": row.get("comments"),
+                "license": row.get("license"),
+                "is_current": True,
+                "valid_from": valid_from,
+                "valid_to": None,
+            }
+        )
 
         for version in versions:
             created_date = date.fromisoformat(version["created_date"])
@@ -92,12 +149,15 @@ def build_fact_and_dates(validated_frame: pd.DataFrame) -> tuple[pd.DataFrame, p
                     "submission_key": submission_key,
                     "paper_id": row["id"],
                     "version_number": version["version_number"],
+                    "paper_key": paper_key,
                     "date_key": date_key,
                     "is_first_submission": version["version_number"] == 1,
                     "is_latest_version": version["version_number"] == latest_version_number,
                 }
             )
             submission_key += 1
+
+        paper_key += 1
 
     fact_frame = pd.DataFrame(fact_rows, columns=FACT_COLUMNS)
 
@@ -118,34 +178,49 @@ def build_fact_and_dates(validated_frame: pd.DataFrame) -> tuple[pd.DataFrame, p
         )
 
     date_frame = pd.DataFrame(date_rows, columns=DATE_COLUMNS)
-    return fact_frame, date_frame
+    papers_frame = pd.DataFrame(paper_rows, columns=DIM_PAPERS_COLUMNS)
+    return fact_frame, date_frame, papers_frame
 
 
-def write_modeled_outputs(fact_frame: pd.DataFrame, date_frame: pd.DataFrame, output_dir: Path) -> dict[str, Path]:
+def write_modeled_outputs(
+    fact_frame: pd.DataFrame,
+    date_frame: pd.DataFrame,
+    papers_frame: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Path]:
     ensure_directory(output_dir)
     fact_path = output_dir / "fact_submissions.parquet"
     date_path = output_dir / "dim_dates.parquet"
+    papers_path = output_dir / "dim_papers.parquet"
     fact_frame.to_parquet(fact_path, index=False)
     date_frame.to_parquet(date_path, index=False)
+    papers_frame.to_parquet(papers_path, index=False)
     return {
         "fact_submissions": fact_path,
         "dim_dates": date_path,
+        "dim_papers": papers_path,
     }
 
 
 def run_model(input_path: Path, output_dir: Path) -> dict[str, Any]:
     validated_frame = pd.read_parquet(input_path)
-    fact_frame, date_frame = build_fact_and_dates(validated_frame)
-    outputs = write_modeled_outputs(fact_frame=fact_frame, date_frame=date_frame, output_dir=output_dir)
+    fact_frame, date_frame, papers_frame = build_fact_and_dates(validated_frame)
+    outputs = write_modeled_outputs(
+        fact_frame=fact_frame,
+        date_frame=date_frame,
+        papers_frame=papers_frame,
+        output_dir=output_dir,
+    )
     return {
         "fact_rows": len(fact_frame),
         "date_rows": len(date_frame),
+        "paper_rows": len(papers_frame),
         "outputs": outputs,
     }
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Build minimal fact and date dimensions from validated data.")
+    parser = argparse.ArgumentParser(description="Build star schema fact and dimension tables from validated data.")
     parser.add_argument("--input", type=path_arg, default=DEFAULT_VALIDATED_PATH, help="Path to the validated Parquet input.")
     parser.add_argument("--output-dir", type=path_arg, default=DEFAULT_MODELED_DIR, help="Directory for modeled Parquet outputs.")
     return parser
@@ -155,7 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     result = run_model(input_path=args.input, output_dir=args.output_dir)
     print(
-        f"Created {result['fact_rows']} fact rows and {result['date_rows']} date rows "
-        f"under {args.output_dir}"
+        f"Created {result['fact_rows']} fact rows, {result['date_rows']} date rows, "
+        f"and {result['paper_rows']} paper rows under {args.output_dir}"
     )
     return 0
