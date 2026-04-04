@@ -220,8 +220,11 @@ def run_ingest(
             buffered_rows.append(normalized)
             valid_records += 1
 
-            # Batched writes keep memory bounded while still giving this batch job predictable,
-            # rerunnable output semantics. That simplicity is the batch version of exactly-once.
+            # Batched writes keep memory bounded without changing the core delivery model of this
+            # stage: one bounded input snapshot produces one deterministic output file. If a run
+            # fails, we can rerun the whole job and rewrite the target from the start rather than
+            # reasoning about duplicate events, partial checkpoints, or idempotent per-record
+            # commits. That is the batch-world version of "exactly-once" semantics.
             if len(buffered_rows) >= batch_size:
                 _write_batch(writer, buffered_rows)
                 buffered_rows.clear()
