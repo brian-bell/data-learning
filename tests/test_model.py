@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import pytest
 import pandas as pd
 
 from data_learning.ingest_stage import normalize_record
-from data_learning.model_stage import DATE_COLUMNS, FACT_COLUMNS, run_model
+from data_learning.model_stage import DATE_COLUMNS, FACT_COLUMNS, build_fact_and_dates, run_model
 
 from tests.helpers import make_arxiv_record
 
@@ -30,3 +31,9 @@ def test_run_model_builds_fact_submissions_and_dim_dates(tmp_path):
     assert fact_frame["is_first_submission"].tolist() == [True, False, True]
     assert fact_frame["is_latest_version"].tolist() == [False, True, True]
     assert date_frame["date_key"].tolist() == [20200101, 20210101, 20210202]
+
+
+def test_build_fact_and_dates_raises_on_empty_versions():
+    frame = pd.DataFrame([{"id": "0000001", "versions": "[]"}])
+    with pytest.raises(ValueError, match="no versions"):
+        build_fact_and_dates(frame)

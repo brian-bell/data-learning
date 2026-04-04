@@ -45,6 +45,8 @@ def build_fact_and_dates(validated_frame: pd.DataFrame) -> tuple[pd.DataFrame, p
 
     for row in validated_frame.to_dict(orient="records"):
         versions = json_loads_if_needed(row["versions"])
+        if not versions:
+            raise ValueError(f"paper {row['id']} has no versions")
         latest_version_number = max(version["version_number"] for version in versions)
 
         for version in versions:
