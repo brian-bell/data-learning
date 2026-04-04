@@ -1,14 +1,14 @@
 # Stage 2 Star Schema
 
-This note explains the current Stage 2 modeling design implemented in [`src/data_learning/model_stage.py`](/Users/brian/dev/data-learning/src/data_learning/model_stage.py).
+This note describes the Stage 2 dimensional model implemented in [`src/data_learning/model_stage.py`](/Users/brian/dev/data-learning/src/data_learning/model_stage.py).
 
-The repository now writes three modeled Parquet tables under `data/modeled/`:
+The current modeled schema centers on three tables:
 
 - `fact_submissions.parquet`
 - `dim_dates.parquet`
 - `dim_papers.parquet`
 
-This is the core star schema from issue `#5`. It is intentionally narrower than the full Phase 1 spec: bridge tables and SCD Type 2 behavior are still out of scope.
+Together they form a compact star schema for analytical work over arXiv submission history. The model is intentionally narrower than a fuller warehouse-style design: bridge tables and full SCD Type 2 behavior are not part of the current implementation.
 
 ## Schema overview
 
@@ -16,11 +16,11 @@ This is the core star schema from issue `#5`. It is intentionally narrower than 
 
 This is the central fact table.
 
-Current grain:
+Grain:
 
 - one row per paper-version submission event
 
-Current columns:
+Columns:
 
 - `submission_key`
 - `paper_id`
@@ -39,13 +39,13 @@ Why this grain:
 Tradeoff:
 
 - this creates more fact rows than a one-row-per-paper model
-- but the extra rows reflect real submission events, which is the more useful analytical shape for this project
+- but the extra rows reflect real submission events, which is the more useful analytical shape for this dataset and query pattern
 
 ### `dim_papers`
 
 This dimension has one row per unique `paper_id`.
 
-Current columns:
+Columns:
 
 - `paper_key`
 - `paper_id`
@@ -62,19 +62,19 @@ Current columns:
 Implementation choice:
 
 - `paper_key` is a surrogate key assigned deterministically from sorted `paper_id` values
-- `valid_from`, `valid_to`, and `is_current` are present now as placeholders for later SCD work
-- for issue `#5`, every paper row is current, `valid_to` is null, and `valid_from` is the first submission date
+- `valid_from`, `valid_to`, and `is_current` are present to support historical dimension patterns
+- in the current implementation, each paper has one current row, `valid_to` is null, and `valid_from` is the first submission date
 
 Tradeoff:
 
 - this is not a full historical dimension yet
-- but it keeps the schema compatible with the next modeling issue without pretending SCD Type 2 is already implemented
+- but it keeps the schema compatible with future historical-dimension work without pretending SCD Type 2 is already implemented
 
 ### `dim_dates`
 
 This is a calendar dimension keyed by `date_key` in `YYYYMMDD` form.
 
-Current columns:
+Columns:
 
 - `date_key`
 - `full_date`
@@ -139,13 +139,13 @@ The current implementation favors deterministic outputs:
 
 This is a good fit for a local batch pipeline because reruns should produce the same outputs from the same validated input.
 
-## Known limits of the current implementation
+## Scope limits
 
-What is intentionally not implemented yet:
+Some dimensional-modeling capabilities are intentionally outside the current schema:
 
 - SCD Type 2 behavior in `dim_papers`
 - author and category dimensions
 - bridge tables for paper-author and paper-category relationships
 - later storage-format and dashboard work from later stages
 
-That boundary matters because the current code should describe the implemented core star schema accurately without implying the rest of Phase 1 already exists.
+That boundary matters because this document is meant to describe the current model accurately without implying a broader warehouse design that is not yet present.
