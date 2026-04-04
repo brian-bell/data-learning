@@ -9,11 +9,11 @@ This repository currently implements issue `#3`: a thin end-to-end slice that pr
 The implemented pipeline processes a small sample of the raw arXiv JSONL snapshot through four stages:
 
 1. `ingest`: read JSONL, keep the first 100 valid records, and write validated Parquet
-2. `model`: build a minimal `fact_submissions` table and `dim_dates`
+2. `model`: build the core Stage 2 star schema tables `fact_submissions`, `dim_dates`, and `dim_papers`
 3. `store`: write `fact_submissions` to CSV and Parquet outputs
 4. `query`: run one DuckDB query for submission counts by year
 
-This is intentionally narrower than the full Phase 1 spec. It does not yet include full validation/logging, `dim_papers`, bridge tables, SCD Type 2 behavior, Avro output, benchmarks, or the Streamlit dashboard.
+This is intentionally narrower than the full Phase 1 spec. It does not yet include full validation/logging, bridge tables, SCD Type 2 behavior, Avro output, benchmarks, or the Streamlit dashboard.
 
 ## Project layout
 
@@ -274,6 +274,7 @@ The current tracer bullet writes:
 - `data/raw/arxiv_validated.parquet`
 - `data/modeled/fact_submissions.parquet`
 - `data/modeled/dim_dates.parquet`
+- `data/modeled/dim_papers.parquet`
 - `data/output/csv/fact_submissions.csv`
 - `data/output/parquet/fact_submissions.parquet`
 
