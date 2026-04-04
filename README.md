@@ -1,19 +1,19 @@
 # data-learning
 
-Minimal tracer-bullet data pipeline for learning data engineering concepts with the arXiv metadata dataset.
+Local data pipeline project for learning data engineering concepts with the arXiv metadata dataset.
 
-This repository currently implements issue `#3`: a thin end-to-end slice that proves the local pipeline shape works before the fuller Phase 1 project is built out.
+This repository currently implements full Stage 1 ingestion from issue `#4`, plus a narrower partial implementation of later stages while the rest of Phase 1 is still being built out.
 
 ## Current scope
 
-The implemented pipeline processes a small sample of the raw arXiv JSONL snapshot through four stages:
+The implemented pipeline currently covers the four stages below, with Stage 1 implemented fully and later stages still intentionally minimal:
 
-1. `ingest`: read JSONL, keep the first 100 valid records, and write validated Parquet
+1. `ingest`: stream JSONL, validate records, log drops, and write validated Parquet
 2. `model`: build a minimal `fact_submissions` table and `dim_dates`
 3. `store`: write `fact_submissions` to CSV and Parquet outputs
 4. `query`: run one DuckDB query for submission counts by year
 
-This is intentionally narrower than the full Phase 1 spec. It does not yet include full validation/logging, `dim_papers`, bridge tables, SCD Type 2 behavior, Avro output, benchmarks, or the Streamlit dashboard.
+The repository is still narrower than the full Phase 1 spec. It does not yet include `dim_papers`, bridge tables, SCD Type 2 behavior, Avro output, benchmarks, or the Streamlit dashboard.
 
 ## Project layout
 
@@ -186,7 +186,7 @@ This is the most explicit and beginner-friendly option because every command cle
 
 ```bash
 ./.venv/bin/python --version
-./.venv/bin/pytest -q
+PYTHONPYCACHEPREFIX=/tmp/data-learning-pyc ./.venv/bin/pytest -q
 ```
 
 This README mostly uses that style.
@@ -232,8 +232,7 @@ If your file lives somewhere else, pass a different path with `--input`.
 ```bash
 ./.venv/bin/python src/ingest.py \
   --input data/arxiv-metadata-oai-snapshot.json \
-  --output data/raw/arxiv_validated.parquet \
-  --limit 100
+  --output data/raw/arxiv_validated.parquet
 ```
 
 ### 2. Model
@@ -269,7 +268,7 @@ year    submission_count
 
 ## Outputs
 
-The current tracer bullet writes:
+The current implementation writes:
 
 - `data/raw/arxiv_validated.parquet`
 - `data/modeled/fact_submissions.parquet`
@@ -301,7 +300,7 @@ If you just want a safe, repeatable local workflow on macOS, use this:
 python3 -m venv .venv
 ./.venv/bin/pip install --upgrade pip setuptools wheel
 ./.venv/bin/pip install -e .
-./.venv/bin/pytest -q
+PYTHONPYCACHEPREFIX=/tmp/data-learning-pyc ./.venv/bin/pytest -q
 ./.venv/bin/python src/ingest.py --help
 ```
 
