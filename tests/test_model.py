@@ -103,6 +103,28 @@ def test_build_fact_and_dates_uses_valid_dimension_keys():
     assert fact_frame["is_latest_version"].tolist() == [False, False, True, True]
 
 
+def test_build_fact_and_dates_marks_earliest_present_version_as_first_submission():
+    record_without_v1 = make_arxiv_record(1, version_count=1, year=2020)
+    record_without_v1["versions"] = [
+        {"version": "v4", "created": "Sat, 04 Apr 2020 00:00:00 GMT"},
+        {"version": "v2", "created": "Sun, 02 Feb 2020 00:00:00 GMT"},
+    ]
+    record_starting_at_v1 = make_arxiv_record(2, version_count=2, year=2021)
+    frame = pd.DataFrame(
+        [
+            normalize_record(record_without_v1)[0],
+            normalize_record(record_starting_at_v1)[0],
+        ]
+    )
+
+    fact_frame, _, _ = build_fact_and_dates(frame)
+
+    assert fact_frame["paper_id"].tolist() == ["0000001", "0000001", "0000002", "0000002"]
+    assert fact_frame["version_number"].tolist() == [2, 4, 1, 2]
+    assert fact_frame["is_first_submission"].tolist() == [True, False, True, False]
+    assert fact_frame["is_latest_version"].tolist() == [False, True, False, True]
+
+
 def test_build_fact_and_dates_rejects_pathological_date_span():
     frame = pd.DataFrame(
         [

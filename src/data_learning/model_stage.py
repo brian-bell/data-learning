@@ -180,6 +180,7 @@ def build_fact_and_dates(validated_frame: pd.DataFrame) -> tuple[pd.DataFrame, p
         versions = normalize_versions(row["versions"])
         if not versions:
             raise ValueError(f"paper {row['id']} has no versions")
+        first_version_number = min(version["version_number"] for version in versions)
         latest_version_number = max(version["version_number"] for version in versions)
 
         for version in versions:
@@ -196,7 +197,7 @@ def build_fact_and_dates(validated_frame: pd.DataFrame) -> tuple[pd.DataFrame, p
                     # key gives us a stable join target for dimensional modeling and later SCD work.
                     "paper_key": paper_keys[row["id"]],
                     "date_key": date_key,
-                    "is_first_submission": version["version_number"] == 1,
+                    "is_first_submission": version["version_number"] == first_version_number,
                     "is_latest_version": version["version_number"] == latest_version_number,
                 }
             )
