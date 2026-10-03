@@ -16,9 +16,9 @@ When making changes, preserve that distinction unless the user explicitly asks t
   - `src/query.py`
   - shared logic under `src/data_learning/`
   - full ingestion validation/logging that writes validated raw Parquet
+  - core Stage 2 star schema outputs: `fact_submissions`, `dim_dates`, `dim_papers`
   - stage tests and one end-to-end CLI smoke test
 - Not implemented yet:
-  - `dim_papers`
   - authors/categories dimensions and bridge tables
   - SCD Type 2 logic
   - Avro output and benchmarks
@@ -47,6 +47,7 @@ PYTHONPYCACHEPREFIX=/tmp/data-learning-pyc ./.venv/bin/pytest -q
   - `submission_key`
   - `paper_id`
   - `version_number`
+  - `paper_key`
   - `date_key`
   - `is_first_submission`
   - `is_latest_version`

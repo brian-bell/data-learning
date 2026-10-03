@@ -9,11 +9,11 @@ This repository currently implements full Stage 1 ingestion from issue `#4`, plu
 The implemented pipeline currently covers the four stages below, with Stage 1 implemented fully and later stages still intentionally minimal:
 
 1. `ingest`: stream JSONL, validate records, log drops, and write validated Parquet
-2. `model`: build a minimal `fact_submissions` table and `dim_dates`
+2. `model`: build the core Stage 2 star schema tables `fact_submissions`, `dim_dates`, and `dim_papers`
 3. `store`: write `fact_submissions` to CSV and Parquet outputs
 4. `query`: run one DuckDB query for submission counts by year
 
-The repository is still narrower than the full Phase 1 spec. It does not yet include `dim_papers`, bridge tables, SCD Type 2 behavior, Avro output, benchmarks, or the Streamlit dashboard.
+The repository is still narrower than the full Phase 1 spec. It does not yet include bridge tables, SCD Type 2 behavior, Avro output, benchmarks, or the Streamlit dashboard.
 
 ## Project layout
 
@@ -273,6 +273,7 @@ The current implementation writes:
 - `data/raw/arxiv_validated.parquet`
 - `data/modeled/fact_submissions.parquet`
 - `data/modeled/dim_dates.parquet`
+- `data/modeled/dim_papers.parquet`
 - `data/output/csv/fact_submissions.csv`
 - `data/output/parquet/fact_submissions.parquet`
 
